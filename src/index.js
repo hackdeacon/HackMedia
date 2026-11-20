@@ -812,10 +812,21 @@ function renderAirbnbUI() {
   <link rel="icon" type="image/svg+xml" href="https://cdn.simpleicons.org/hackthebox/9fe870">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <script>
+    // Immediately apply theme before DOM renders to prevent flash of wrong theme (FOUC)
+    (function() {
+      const storedTheme = localStorage.getItem('hackmedia-theme');
+      if (storedTheme === 'dark' || storedTheme === 'light') {
+        document.documentElement.setAttribute('data-theme', storedTheme);
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+    })();
+  </script>
   <style>
     :root {
-      /* Wise Design System Tokens */
+      /* Wise Light System Tokens */
       --primary: #9fe870;
       --on-primary: #0e0f0c;
       --primary-active: #cdffad;
@@ -827,6 +838,18 @@ function renderAirbnbUI() {
       --mute: #868685;
       --canvas: #ffffff;
       --canvas-soft: #e8ebe6;
+      --card-border: rgba(14, 15, 12, 0.12);
+      --card-shadow: 0 4px 24px rgba(14, 15, 12, 0.04);
+      --input-bg: #e8ebe6;
+      --input-focus-bg: #ffffff;
+      --input-border: rgba(14, 15, 12, 0.14);
+      --header-bg: rgba(232, 235, 230, 0.88);
+      --header-border: rgba(14, 15, 12, 0.06);
+      --footer-bg: #0e0f0c;
+      --footer-text: #e8ebe6;
+      --pill-bg: #ffffff;
+      --pill-text: #454745;
+      --pill-border: rgba(14, 15, 12, 0.08);
       --positive: #2ead4b;
       --positive-deep: #054d28;
       --negative: #d03238;
@@ -840,6 +863,69 @@ function renderAirbnbUI() {
       
       --font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-mono: monospace;
+    }
+
+    /* Dark Mode (supports auto OS preference & manual override) */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --primary: #9fe870;
+        --on-primary: #0e0f0c;
+        --primary-active: #cdffad;
+        --primary-neutral: #1e3a10;
+        --primary-pale: rgba(159, 232, 112, 0.14);
+        --ink: #f0f2ee;
+        --ink-deep: #9fe870;
+        --body: #9eaba0;
+        --mute: #707b72;
+        --canvas: #151815;
+        --canvas-soft: #0c0e0c;
+        --card-border: rgba(255, 255, 255, 0.09);
+        --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+        --input-bg: #1c211c;
+        --input-focus-bg: #232923;
+        --input-border: rgba(255, 255, 255, 0.14);
+        --header-bg: rgba(12, 14, 12, 0.88);
+        --header-border: rgba(255, 255, 255, 0.06);
+        --footer-bg: #070807;
+        --footer-text: #8e9a90;
+        --pill-bg: #1b201b;
+        --pill-text: #9eaba0;
+        --pill-border: rgba(255, 255, 255, 0.08);
+        --positive: #9fe870;
+        --positive-deep: #cdffad;
+        --negative: #ff5252;
+        --negative-bg: #2b0b0b;
+      }
+    }
+
+    [data-theme="dark"] {
+      --primary: #9fe870;
+      --on-primary: #0e0f0c;
+      --primary-active: #cdffad;
+      --primary-neutral: #1e3a10;
+      --primary-pale: rgba(159, 232, 112, 0.14);
+      --ink: #f0f2ee;
+      --ink-deep: #9fe870;
+      --body: #9eaba0;
+      --mute: #707b72;
+      --canvas: #151815;
+      --canvas-soft: #0c0e0c;
+      --card-border: rgba(255, 255, 255, 0.09);
+      --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+      --input-bg: #1c211c;
+      --input-focus-bg: #232923;
+      --input-border: rgba(255, 255, 255, 0.14);
+      --header-bg: rgba(12, 14, 12, 0.88);
+      --header-border: rgba(255, 255, 255, 0.06);
+      --footer-bg: #070807;
+      --footer-text: #8e9a90;
+      --pill-bg: #1b201b;
+      --pill-text: #9eaba0;
+      --pill-border: rgba(255, 255, 255, 0.08);
+      --positive: #9fe870;
+      --positive-deep: #cdffad;
+      --negative: #ff5252;
+      --negative-bg: #2b0b0b;
     }
 
     * {
@@ -862,16 +948,17 @@ function renderAirbnbUI() {
 
     /* Top Navigation */
     header {
-      background: var(--canvas-soft);
+      background: var(--header-bg);
       padding: 16px 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(14, 15, 12, 0.06);
+      border-bottom: 1px solid var(--header-border);
       position: sticky;
       top: 0;
       z-index: 100;
       backdrop-filter: blur(12px);
+      transition: background-color 0.2s ease, border-color 0.2s ease;
     }
 
     .brand {
@@ -891,7 +978,7 @@ function renderAirbnbUI() {
       background: var(--ink);
       border-radius: var(--radius-md);
       color: var(--primary);
-      box-shadow: 0 2px 8px rgba(14, 15, 12, 0.12);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       transition: transform 0.15s ease;
     }
 
@@ -931,6 +1018,12 @@ function renderAirbnbUI() {
       letter-spacing: 0.2px;
     }
 
+    .nav-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
     .protocol-tags {
       display: flex;
       gap: 8px;
@@ -941,17 +1034,46 @@ function renderAirbnbUI() {
       font-size: 11px;
       font-family: var(--font-mono);
       font-weight: 500;
-      background: var(--canvas);
-      border: 1px solid rgba(14, 15, 12, 0.08);
-      color: var(--body);
+      background: var(--pill-bg);
+      border: 1px solid var(--pill-border);
+      color: var(--pill-text);
       padding: 5px 12px;
       border-radius: var(--radius-pill);
       transition: all 0.15s ease;
     }
 
     .protocol-tag:hover {
-      border-color: var(--ink);
+      border-color: var(--primary);
       color: var(--ink);
+    }
+
+    /* Theme Toggle Button (Wise pill style) */
+    .theme-toggle-btn {
+      background: var(--pill-bg);
+      border: 1px solid var(--pill-border);
+      color: var(--ink);
+      border-radius: var(--radius-pill);
+      height: 34px;
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .theme-toggle-btn:hover {
+      border-color: var(--primary);
+      background: var(--canvas-soft);
+    }
+
+    .theme-toggle-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
     }
 
     /* Main Container */
@@ -1004,16 +1126,17 @@ function renderAirbnbUI() {
     /* Wise Currency-Converter Style Parser Card */
     .converter-card {
       background: var(--canvas);
-      border: 1px solid var(--ink);
+      border: 1px solid var(--card-border);
       border-radius: var(--radius-xl);
       padding: 28px;
-      box-shadow: 0 4px 24px rgba(14, 15, 12, 0.04);
+      box-shadow: var(--card-shadow);
       margin-bottom: 20px;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
     }
 
     .input-box {
-      background: var(--canvas-soft);
-      border: 1px solid rgba(14, 15, 12, 0.12);
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
       border-radius: var(--radius-lg);
       padding: 16px 20px;
       display: flex;
@@ -1023,8 +1146,8 @@ function renderAirbnbUI() {
     }
 
     .input-box:focus-within {
-      border-color: var(--ink);
-      background: var(--canvas);
+      border-color: var(--primary);
+      background: var(--input-focus-bg);
     }
 
     .input-label-row {
@@ -1159,8 +1282,9 @@ function renderAirbnbUI() {
       background: var(--canvas);
       border-radius: var(--radius-xl);
       padding: 32px;
-      box-shadow: 0 4px 20px rgba(14, 15, 12, 0.05);
-      border: 1px solid rgba(14, 15, 12, 0.08);
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--card-border);
+      transition: background-color 0.2s ease, border-color 0.2s ease;
     }
 
     .author-band {
@@ -1168,7 +1292,7 @@ function renderAirbnbUI() {
       align-items: center;
       justify-content: space-between;
       padding-bottom: 20px;
-      border-bottom: 1px solid var(--canvas-soft);
+      border-bottom: 1px solid var(--card-border);
       margin-bottom: 24px;
     }
 
@@ -1184,7 +1308,7 @@ function renderAirbnbUI() {
       border-radius: var(--radius-pill);
       object-fit: cover;
       background: var(--canvas-soft);
-      border: 2px solid var(--canvas);
+      border: 2px solid var(--card-border);
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }
 
@@ -1221,7 +1345,7 @@ function renderAirbnbUI() {
 
     .pill-badge-type {
       background: var(--primary-pale);
-      color: var(--positive-deep);
+      color: var(--primary);
     }
 
     .content-title {
@@ -1239,7 +1363,8 @@ function renderAirbnbUI() {
       line-height: 1.65;
       white-space: pre-wrap;
       margin-bottom: 28px;
-      background: var(--canvas-soft);
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
       padding: 16px 20px;
       border-radius: var(--radius-lg);
       font-family: var(--font-family);
@@ -1371,13 +1496,14 @@ function renderAirbnbUI() {
 
     /* Footer */
     footer {
-      background: var(--ink);
-      color: var(--canvas-soft);
+      background: var(--footer-bg);
+      color: var(--footer-text);
       padding: 36px 24px;
       text-align: center;
       font-size: 12px;
       font-family: var(--font-mono);
       margin-top: auto;
+      border-top: 1px solid var(--card-border);
     }
 
     footer a {
@@ -1449,13 +1575,19 @@ function renderAirbnbUI() {
         <span class="brand-subtitle">Distributed Media Context Inspector</span>
       </div>
     </a>
-    <div class="protocol-tags">
-      <span class="protocol-tag">XHS-CDN</span>
-      <span class="protocol-tag">BILI-API</span>
-      <span class="protocol-tag">SNSSDK</span>
-      <span class="protocol-tag">TIK-STREAM</span>
-      <span class="protocol-tag">TW-FX</span>
-      <span class="protocol-tag">THREADS-OG</span>
+    <div class="nav-actions">
+      <div class="protocol-tags">
+        <span class="protocol-tag">XHS-CDN</span>
+        <span class="protocol-tag">BILI-API</span>
+        <span class="protocol-tag">SNSSDK</span>
+        <span class="protocol-tag">TIK-STREAM</span>
+        <span class="protocol-tag">TW-FX</span>
+        <span class="protocol-tag">THREADS-OG</span>
+      </div>
+      <button id="themeToggleBtn" class="theme-toggle-btn" type="button" onclick="cycleTheme()" title="Switch Theme Mode (Auto / Light / Dark)">
+        <span id="themeIcon">🌓</span>
+        <span id="themeLabel">AUTO</span>
+      </button>
     </div>
   </header>
 
@@ -1560,6 +1692,58 @@ function renderAirbnbUI() {
   </footer>
 
   <script>
+    // Theme Switcher & Auto-Detection Logic
+    function updateThemeUI(theme) {
+      const icon = document.getElementById('themeIcon');
+      const label = document.getElementById('themeLabel');
+      if (!icon || !label) return;
+      if (theme === 'dark') {
+        icon.innerText = '🌙';
+        label.innerText = 'DARK';
+      } else if (theme === 'light') {
+        icon.innerText = '☀️';
+        label.innerText = 'LIGHT';
+      } else {
+        icon.innerText = '🌓';
+        label.innerText = 'AUTO';
+      }
+    }
+
+    function cycleTheme() {
+      const current = localStorage.getItem('hackmedia-theme');
+      let nextTheme;
+      if (!current) {
+        // From AUTO to LIGHT or DARK depending on system
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        nextTheme = systemPrefersDark ? 'light' : 'dark';
+      } else if (current === 'light') {
+        nextTheme = 'dark';
+      } else if (current === 'dark') {
+        nextTheme = null; // Back to AUTO
+      }
+
+      if (nextTheme) {
+        localStorage.setItem('hackmedia-theme', nextTheme);
+        document.documentElement.setAttribute('data-theme', nextTheme);
+      } else {
+        localStorage.removeItem('hackmedia-theme');
+        document.documentElement.removeAttribute('data-theme');
+      }
+      updateThemeUI(nextTheme);
+    }
+
+    // Sync theme UI on initial load
+    document.addEventListener('DOMContentLoaded', () => {
+      updateThemeUI(localStorage.getItem('hackmedia-theme'));
+    });
+
+    // Listen to OS system color scheme changes in real-time
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      if (!localStorage.getItem('hackmedia-theme')) {
+        updateThemeUI(null);
+      }
+    });
+
     async function pasteClipboard() {
       try {
         if (navigator.clipboard && navigator.clipboard.readText) {
