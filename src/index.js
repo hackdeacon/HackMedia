@@ -808,7 +808,8 @@ function renderAirbnbUI() {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="referrer" content="no-referrer">
-  <title>ContextLens · Open Web Media Inspector</title>
+  <title>HackMedia · Distributed Protocol Context & Media Inspector</title>
+  <link rel="icon" type="image/svg+xml" href="https://cdn.simpleicons.org/hackthebox/9fe870">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1435,19 +1436,17 @@ function renderAirbnbUI() {
   <header>
     <a href="/" class="brand">
       <div class="brand-icon-wrap">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-          <!-- Geometric Lens with Aperture / Prism refraction -->
-          <circle cx="12" cy="12" r="9"></circle>
-          <circle cx="12" cy="12" r="3.5" fill="currentColor"></circle>
-          <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"></path>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <!-- HackTheBox geometric cube icon from SimpleIcons -->
+          <path d="m22.5106 6.4566.0008-.0123a.888.888 0 0 0-.2717-.6384c-.0084-.0084-.018-.0155-.0276-.0228l-9.6-5.6582a.8986.8986 0 0 0-.9034 0l-9.6 5.6582c-.0096.0073-.0192.0144-.0276.0228a.888.888 0 0 0-.2717.6384l.0008.0123a.882.882 0 0 0-.0102.1332v11.3168a.8996.8996 0 0 0 .4746.7909l9.6 5.6582a.9015.9015 0 0 0 .9034 0l9.6-5.6582a.8996.8996 0 0 0 .4746-.7909V6.5898a.882.882 0 0 0-.0102-.1332zM12.449 2.5028l8.0388 4.738-3.4109 2.01-8.0388-4.738zm-8.9378 4.738 8.0388-4.738 3.4109 2.01-8.0388 4.738zM3.882 8.3582l7.669 4.52V21.411l-7.669-4.52zm16.236 8.5328-7.669 4.52V12.8782l7.669-4.52z"/>
         </svg>
       </div>
       <div class="brand-text-col">
         <div class="brand-title">
-          <span>ContextLens</span>
+          <span>HackMedia</span>
           <span class="brand-version-pill">v2.4</span>
         </div>
-        <span class="brand-subtitle">Open Media Protocol Inspector</span>
+        <span class="brand-subtitle">Distributed Media Context Inspector</span>
       </div>
     </a>
     <div class="protocol-tags">
@@ -1556,7 +1555,7 @@ function renderAirbnbUI() {
   </main>
 
   <footer>
-    <p>ContextLens 2.4 · Distributed Protocol Context & Web Resource Inspector</p>
+    <p>HackMedia 2.4 · Distributed Protocol Context & Web Resource Inspector</p>
     <p>Sanitized edge caching active. For diagnostics & research use only.</p>
   </footer>
 
