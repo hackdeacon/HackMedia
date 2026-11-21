@@ -314,22 +314,52 @@ async function parseBilibili(rawUrl, env, origin) {
   const queryParam = bvMatch ? `bvid=${bvMatch[1]}` : `aid=${avMatch[1].replace(/av/i, "")}`;
 
   const headers = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Referer": "https://www.bilibili.com/",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
   };
 
   if (env && env.BILIBILI_COOKIE) {
     headers["Cookie"] = env.BILIBILI_COOKIE;
   }
 
-  // 1. 获取视频基本信息与 cid
-  const viewRes = await fetch(`https://api.bilibili.com/x/web-interface/view?${queryParam}`, { headers });
-  const viewData = await viewRes.json().catch(() => ({}));
-  if (viewData.code !== 0 || !viewData.data) {
-    throw new Error(viewData.message || "获取哔哩哔哩视频详情失败");
+  // 安全请求 JSON 辅助函数：严格防止 HTML 拦截页导致 JSON.parse 崩溃
+  const safeFetchBiliJson = async (fetchUrl) => {
+    try {
+      const res = await fetch(fetchUrl, { headers });
+      const text = await res.text();
+      if (!text || text.trim().startsWith("<")) return null;
+      return JSON.parse(text);
+    } catch (_) {
+      return null;
+    }
+  };
+
+  // 1. 获取视频基本信息与 cid（API 优先，页面 HTML 容灾兜底）
+  let vInfo = null;
+  const viewData = await safeFetchBiliJson(`https://api.bilibili.com/x/web-interface/view?${queryParam}`);
+  if (viewData && viewData.code === 0 && viewData.data) {
+    vInfo = viewData.data;
+  } else {
+    // 容灾：直接从 B站网页端 window.__INITIAL_STATE__ 提取视频信息与 cid
+    try {
+      const pageResp = await fetch(targetUrl, { headers });
+      const html = await pageResp.text();
+      const stateMatch = html.match(/window\.__INITIAL_STATE__\s*=\s*({[\s\S]+?});\(function/);
+      if (stateMatch) {
+        const pageData = JSON.parse(stateMatch[1]);
+        if (pageData.videoData) {
+          vInfo = pageData.videoData;
+        }
+      }
+    } catch (_) {}
   }
 
-  const vInfo = viewData.data;
+  if (!vInfo) {
+    throw new Error(viewData?.message || "获取哔哩哔哩视频详情失败，请检查链接或稍后重试");
+  }
+
   const bvid = vInfo.bvid || (bvMatch ? bvMatch[1] : "");
   const cid = vInfo.cid;
 
@@ -341,18 +371,15 @@ async function parseBilibili(rawUrl, env, origin) {
   ];
 
   for (const pUrl of playUrls) {
-    try {
-      const playRes = await fetch(pUrl, { headers });
-      const playData = await playRes.json();
-      if (playData.code === 0 && playData.data?.durl?.length > 0) {
-        videoUrl = playData.data.durl[0].url;
-        break;
-      }
-    } catch (_) {}
+    const playData = await safeFetchBiliJson(pUrl);
+    if (playData && playData.code === 0 && playData.data?.durl?.length > 0) {
+      videoUrl = playData.data.durl[0].url;
+      break;
+    }
   }
 
   if (!videoUrl) {
-    throw new Error("未能成功获取到该哔哩哔哩视频的有效播放流");
+    throw new Error("未能成功获取到该哔哩哔哩视频的有效播放流（可能触发了反爬验证或视频仅会员可见）");
   }
 
   // 规范化下载文件名，去除特殊字符
