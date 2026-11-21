@@ -67,9 +67,27 @@ export default {
  * 平台路由调度器
  */
 async function parseDispatcher(rawText, env, origin) {
-  const urlMatch = rawText.match(/https?:\/\/[^\s]+/);
+  const trimmed = (rawText || "").trim();
+
+  // 1. 如果用户直接输入或粘贴了 B站 BV/av 号
+  const directBvMatch = trimmed.match(/\b(BV[a-zA-Z0-9]+)\b/i);
+  const directAvMatch = trimmed.match(/\b(av\d+)\b/i);
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    if (directBvMatch) {
+      return await parseBilibili(`https://www.bilibili.com/video/${directBvMatch[1]}`, env, origin);
+    } else if (directAvMatch) {
+      return await parseBilibili(`https://www.bilibili.com/video/${directAvMatch[1]}`, env, origin);
+    }
+  }
+
+  const urlMatch = trimmed.match(/https?:\/\/[^\s]+/);
   if (!urlMatch) {
-    throw new Error("未在输入内容中找到有效链接");
+    if (directBvMatch) {
+      return await parseBilibili(`https://www.bilibili.com/video/${directBvMatch[1]}`, env, origin);
+    } else if (directAvMatch) {
+      return await parseBilibili(`https://www.bilibili.com/video/${directAvMatch[1]}`, env, origin);
+    }
+    throw new Error("未在输入内容中找到有效链接或视频号");
   }
 
   const rawUrl = urlMatch[0];
@@ -79,7 +97,7 @@ async function parseDispatcher(rawText, env, origin) {
     return await parseRedbook(rawUrl, env, origin);
   }
   // 2. 哔哩哔哩
-  else if (rawUrl.includes("bilibili.com") || rawUrl.includes("b23.tv")) {
+  else if (rawUrl.includes("bilibili.com") || rawUrl.includes("b23.tv") || directBvMatch || directAvMatch) {
     return await parseBilibili(rawUrl, env, origin);
   }
   // 3. TikTok
@@ -148,9 +166,11 @@ async function handleProxy(targetUrl, incomingRequest, downloadName, platform) {
     respHeaders.set("Access-Control-Allow-Origin", "*");
 
     if (downloadName) {
+      const sanitizedName = downloadName.replace(/[\\/:*?"<>|\r\n]/g, "_").trim();
+      const asciiFallback = sanitizedName.replace(/[^\x20-\x7E]/g, "_").replace(/["\\]/g, "") || "download.mp4";
       respHeaders.set(
         "Content-Disposition",
-        `attachment; filename="${encodeURIComponent(downloadName)}"`
+        `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(sanitizedName)}`
       );
     }
 
@@ -284,38 +304,62 @@ async function parseBilibili(rawUrl, env, origin) {
     targetUrl = res.url;
   }
 
-  // 提取 BV号 (BV1...)
-  const bvMatch = targetUrl.match(/(BV[a-zA-Z0-9]+)/);
-  if (!bvMatch) {
-    throw new Error("未能从小红书/B站链接中匹配到有效 BV 号");
+  // 提取 BV号 (BV1...) 或 av号 (av1...)
+  const bvMatch = targetUrl.match(/(BV[a-zA-Z0-9]+)/i);
+  const avMatch = targetUrl.match(/(av\d+)/i);
+  if (!bvMatch && !avMatch) {
+    throw new Error("未能从输入内容中识别到有效 B站 BV 或 av 编号");
   }
-  const bvid = bvMatch[1];
+
+  const queryParam = bvMatch ? `bvid=${bvMatch[1]}` : `aid=${avMatch[1].replace(/av/i, "")}`;
 
   const headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
     "Referer": "https://www.bilibili.com/",
   };
 
+  if (env && env.BILIBILI_COOKIE) {
+    headers["Cookie"] = env.BILIBILI_COOKIE;
+  }
+
   // 1. 获取视频基本信息与 cid
-  const viewRes = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, { headers });
-  const viewData = await viewRes.json();
+  const viewRes = await fetch(`https://api.bilibili.com/x/web-interface/view?${queryParam}`, { headers });
+  const viewData = await viewRes.json().catch(() => ({}));
   if (viewData.code !== 0 || !viewData.data) {
     throw new Error(viewData.message || "获取哔哩哔哩视频详情失败");
   }
 
   const vInfo = viewData.data;
+  const bvid = vInfo.bvid || (bvMatch ? bvMatch[1] : "");
   const cid = vInfo.cid;
 
   // 2. 获取视频播放直链 (qn=64 为 720P 高清 MP4 流，免登录即可获取完整音视频合轨文件)
-  const playRes = await fetch(
-    `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&qn=64&fnval=0`,
-    { headers }
-  );
-  const playData = await playRes.json();
   let videoUrl = "";
-  if (playData.code === 0 && playData.data?.durl?.length > 0) {
-    videoUrl = playData.data.durl[0].url;
+  const playUrls = [
+    `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&qn=64&fnval=0`,
+    `https://api.bilibili.com/x/player/wbi/playurl?bvid=${bvid}&cid=${cid}&qn=64&fnval=0`,
+  ];
+
+  for (const pUrl of playUrls) {
+    try {
+      const playRes = await fetch(pUrl, { headers });
+      const playData = await playRes.json();
+      if (playData.code === 0 && playData.data?.durl?.length > 0) {
+        videoUrl = playData.data.durl[0].url;
+        break;
+      }
+    } catch (_) {}
   }
+
+  if (!videoUrl) {
+    throw new Error("未能成功获取到该哔哩哔哩视频的有效播放流");
+  }
+
+  // 规范化下载文件名，去除特殊字符
+  const safeTitle = (vInfo.title || "bilibili_video")
+    .replace(/[\\/:*?"<>|\r\n]/g, "_")
+    .trim()
+    .slice(0, 80);
 
   return {
     platform: "bilibili",
@@ -334,7 +378,7 @@ async function parseBilibili(rawUrl, env, origin) {
     }],
     video: {
       url: videoUrl,
-      proxyUrl: `${origin}/api/proxy?url=${encodeURIComponent(videoUrl)}&filename=${encodeURIComponent(vInfo.title)}.mp4&platform=bilibili`,
+      proxyUrl: `${origin}/api/proxy?url=${encodeURIComponent(videoUrl)}&filename=${encodeURIComponent(safeTitle)}.mp4&platform=bilibili`,
       duration: vInfo.duration || 0,
       cover: vInfo.pic,
     },
