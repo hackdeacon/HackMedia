@@ -357,6 +357,9 @@ async function parseBilibili(rawUrl, env, origin) {
   }
 
   if (!vInfo) {
+    if (viewData && viewData.code === -412) {
+      throw new Error("哔哩哔哩触发了安全风控验证（HTTP 412: request was banned）。由于部署在云端节点，请在 Cloudflare 环境变量中配置 BILIBILI_COOKIE 或通过代理使用");
+    }
     throw new Error(viewData?.message || "获取哔哩哔哩视频详情失败，请检查链接或稍后重试");
   }
 
